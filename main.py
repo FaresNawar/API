@@ -51,3 +51,5 @@ async def receive_from_esp32(
             "image_bytes": image_hex
         }
     )
+if __name__ == '__main__':
+    app.run(debug=True)
