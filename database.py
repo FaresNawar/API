@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Get DATABASE_URL from Railway or fallback to local PostgreSQL
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:admin@localhost:5432/greenhouse")
+DATABASE_URL = "postgresql://postgres:TisqSvFqDyAVcXQtgZUstpSXRwarxxNq@postgres.railway.internal:5432/railway"
 
 engine = create_engine(DATABASE_URL)
 
