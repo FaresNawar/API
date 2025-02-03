@@ -31,7 +31,7 @@ import numpy as np
 
 @app.get("/")
 def read_root():
-    return {"message": "Hello from FastAPI on Railway!"}
+    return {"message": "Hello"}
 
 @app.put("/predict")
 async def predict(
