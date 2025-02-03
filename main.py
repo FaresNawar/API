@@ -8,6 +8,7 @@ import numpy as np
 from io import BytesIO
 from PIL import Image
 import tensorflow as tf
+import os
 
 app = FastAPI()
 
@@ -15,7 +16,8 @@ class SensorDataIn(BaseModel):
     temperature: float
     humidity: float
 
-MODEL = tf.keras.models.load_model("C:/Users/zezoc/Desktop/Codes/PotatoCode/API/FloraiAPI/pythonapi/model.h5")
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.h5")
+MODEL = tf.keras.models.load_model(MODEL_PATH)
 CLASS_NAMES = ["Early Blight", "Late Blight", "Healthy"]
 
 def read_file_as_image(data) -> np.ndarray:
