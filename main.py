@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, Depends
+from fastapi import FastAPI, File, UploadFile, Form, Depends
 from sqlalchemy.orm import Session
 from database import get_db
 from models import SensorData, AIPrediction
@@ -9,6 +9,7 @@ from io import BytesIO
 from PIL import Image
 import tensorflow as tf
 import os
+import json
 
 app = FastAPI()
 
@@ -24,11 +25,6 @@ def read_file_as_image(data) -> np.ndarray:
     image = np.array(Image.open(BytesIO(data)))
     return image
 
-from fastapi import FastAPI, UploadFile, File, Depends
-from sqlalchemy.orm import Session
-import numpy as np
-
-
 @app.get("/")
 def read_root():
     return {"message": "Hello"}
@@ -36,13 +32,11 @@ def read_root():
 @app.put("/predict")
 async def predict(
     file: UploadFile = File(),
-    db: Session = Depends(get_db) 
+    db: Session = Depends(get_db)
 ):
-
     image_bytes = await file.read()
     image = read_file_as_image(image_bytes)
     image_batch = np.expand_dims(image, axis=0)
-
 
     predictions = MODEL.predict(image_batch)
     predicted_class = CLASS_NAMES[np.argmax(predictions[0])]
@@ -65,21 +59,33 @@ async def predict(
         "confidence": confidence
     }
 
-
 @app.put("/esp32/upload")
 async def receive_from_esp32(
-    sensor_data: SensorDataIn,
-    image: bytes = File(...),
+    sensor_data: str = Form(...),
+    image: UploadFile = File(...),  
     db: Session = Depends(get_db)
 ):
-    image_hex = image.hex()
+    try:
+
+        sensor_dict = json.loads(sensor_data)
+    except json.JSONDecodeError:
+        return JSONResponse(status_code=400, content={"message": "Invalid JSON in sensor_data"})
+
+
+    print(f"Received sensor data: {sensor_dict}")
+    print(f"Received image data (first 100 bytes): {image.file.read(100)}")
+
+
+    image_bytes = await image.read()
+    image_hex = image_bytes.hex()
+
 
     db_sensor_data = SensorData(
-        temperature=sensor_data.temperature,
-        humidity=sensor_data.humidity,
-        image_data=image_hex 
+        temperature=sensor_dict.get('temperature'),
+        humidity=sensor_dict.get('humidity'),
+        image_data=image_hex
     )
-    
+
     db.add(db_sensor_data)
     db.commit()
     db.refresh(db_sensor_data)
@@ -87,7 +93,7 @@ async def receive_from_esp32(
     return JSONResponse(
         content={
             "message": "Image and sensor data received and stored",
-            "sensor_data": sensor_data.dict(),
+            "sensor_data": sensor_dict,
             "image_bytes": image_hex
         }
     )
